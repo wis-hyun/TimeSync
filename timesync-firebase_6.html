@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TimeSync</title>
+<style>
+:root {
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface2: #f0f0f2;
+  --border: #d1d1d6;
+  --text: #1c1c1e;
+  --text2: #6e6e73;
+  --accent: #007aff;
+  --accent2: #5ac8fa;
+  --danger: #ff3b30;
+  --success: #34c759;
+  --warn: #ff9500;
+  --header-bg: rgba(255,255,255,0.85);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1c1c1e;
+    --surface: #2c2c2e;
+    --surface2: #3a3a3c;
+    --border: #48484a;
+    --text: #f5f5f7;
+    --text2: #98989d;
+    --accent: #0a84ff;
+    --accent2: #64d2ff;
+    --danger: #ff453a;
+    --success: #30d158;
+    --warn: #ff9f0a;
+    --header-bg: rgba(44,44,46,0.9);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1c1c1e;
+  --surface: #2c2c2e;
+  --surface2: #3a3a3c;
+  --border: #48484a;
+  --text: #f5f5f7;
+  --text2: #98989d;
+  --accent: #0a84ff;
+  --accent2: #64d2ff;
+  --danger: #ff453a;
+  --success: #30d158;
+  --warn: #ff9f0a;
+  --header-bg: rgba(44,44,46,0.9);
+  color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.5}
+
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.login-card{background:var(--surface);border-radius:20px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,.12)}
+.login-logo{font-size:40px;margin-bottom:8px;text-align:center}
+.login-title{font-size:28px;font-weight:700;text-align:center;margin-bottom:4px}
+.login-sub{color:var(--text2);text-align:center;margin-bottom:32px;font-size:14px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.field input{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:15px;outline:none;transition:border-color .2s}
+.field input:focus{border-color:var(--accent)}
+.btn{display:block;width:100%;padding:14px;border-radius:12px;border:none;font-size:16px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{opacity:.85}
+.btn-secondary{background:var(--surface2);color:var(--text);margin-top:10px}
+.login-error{color:var(--danger);font-size:13px;text-align:center;margin-top:12px;min-height:20px}
+
+/* APP */
+#app-screen{display:none;min-height:100vh;flex-direction:column}
+.app-header{position:sticky;top:0;z-index:100;background:var(--header-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:10px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.header-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.app-logo{font-size:22px;font-weight:800;letter-spacing:-0.5px}
+.team-badge{background:var(--accent);color:#fff;font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.utc-clock{font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums;flex:1;text-align:right}
+.btn-logout{background:transparent;border:1.5px solid var(--border);color:var(--text2);font-size:12px;padding:4px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.btn-logout:hover{border-color:var(--danger);color:var(--danger)}
+.tabs{display:flex;gap:0}
+.tab-btn{flex:1;padding:8px 0 12px;border:none;background:transparent;color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;border-bottom:2.5px solid transparent;transition:all .2s}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+.app-body{flex:1;padding:16px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px));max-width:900px;margin:0 auto;width:100%}
+
+/* PANELS */
+.panel{display:none}
+.panel.active{display:block}
+
+/* SECTION */
+.section-card{background:var(--surface);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.section-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px}
+
+/* CITY SEARCH */
+.city-add-row{display:flex;gap:8px;flex-wrap:wrap}
+.city-search-wrap{position:relative;flex:1;min-width:180px}
+.city-search-wrap input{width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;outline:none}
+.city-search-wrap input:focus{border-color:var(--accent)}
+.city-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);max-height:220px;overflow-y:auto;z-index:200;display:none}
+.city-dropdown.open{display:block}
+.city-option{padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--border)}
+.city-option:last-child{border-bottom:none}
+.city-option:hover{background:var(--surface2)}
+.city-option .co-sub{font-size:12px;color:var(--text2)}
+.label-input{padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;width:120px;outline:none}
+.label-input:focus{border-color:var(--accent)}
+.btn-add{padding:10px 16px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-add:hover{opacity:.85}
+
+/* CITY LIST */
+.city-list{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.city-item{display:flex;align-items:center;gap:12px;background:var(--surface2);border-radius:12px;padding:12px 14px}
+.city-color{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.city-info{flex:1;min-width:0}
+.city-name{font-weight:600;font-size:15px}
+.city-label{font-size:12px;color:var(--text2)}
+.city-time{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;flex-shrink:0}
+.city-date{font-size:11px;color:var(--text2);text-align:right}
+.btn-remove{background:transparent;border:none;color:var(--text2);font-size:18px;cursor:pointer;padding:4px;line-height:1;flex-shrink:0}
+.btn-remove:hover{color:var(--danger)}
+
+/* 24H GRID */
+.grid-wrap{overflow-x:auto;margin-top:8px}
+.time-grid{border-collapse:collapse;min-width:700px;width:100%}
+.time-grid th,.time-grid td{padding:0;border:1px solid var(--border)}
+.time-grid th{background:var(--surface2);font-size:11px;font-weight:600;color:var(--text2);padding:4px 2px;text-align:center;min-width:28px}
+.time-grid .city-th{text-align:left;padding:8px 10px;min-width:120px;background:var(--surface2)}
+.grid-cell{width:28px;height:32px;text-align:center;font-size:10px;font-variant-numeric:tabular-nums;cursor:default;transition:background .1s}
+.grid-cell.now{outline:2px solid var(--accent);outline-offset:-2px}
+
+/* FIND A TIME */
+.event-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.event-item{background:var(--surface2);border-radius:12px;padding:14px 16px;cursor:pointer;transition:background .15s;border:2px solid transparent}
+.event-item:hover{background:var(--border)}
+.event-item.active{border-color:var(--accent)}
+.event-item-title{font-weight:700;font-size:15px;margin-bottom:4px}
+.event-item-meta{font-size:12px;color:var(--text2)}
+.btn-new-event{background:var(--surface2);border:1.5px dashed var(--border);border-radius:12px;padding:14px;width:100%;font-size:14px;color:var(--text2);cursor:pointer;text-align:center;transition:all .15s}
+.btn-new-event:hover{border-color:var(--accent);color:var(--accent)}
+
+/* CREATE EVENT FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}}
+.form-field{display:flex;flex-direction:column;gap:6px}
+.form-field label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.form-field input,.form-field select{padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;outline:none}
+.form-field input:focus,.form-field select:focus{border-color:var(--accent)}
+.date-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.date-tag{background:var(--accent);color:#fff;font-size:12px;padding:3px 10px;border-radius:20px;display:flex;align-items:center;gap:6px}
+.date-tag .rm{cursor:pointer;font-size:14px;line-height:1}
+.form-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn-cancel{flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:var(--text);font-size:14px;font-weight:600;cursor:pointer}
+.btn-submit{flex:2;padding:12px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+.btn-submit:hover{opacity:.85}
+
+/* AVAILABILITY GRID */
+.avail-wrap{overflow-x:auto}
+.avail-grid{border-collapse:collapse;min-width:0}
+.avail-grid th,.avail-grid td{border:1px solid var(--border);padding:0}
+.avail-grid .corner{background:var(--surface2);min-width:80px;font-size:11px;font-weight:600;color:var(--text2);padding:4px 8px}
+.avail-grid .date-th{background:var(--surface2);font-size:12px;font-weight:600;text-align:center;padding:6px;min-width:80px;white-space:nowrap}
+.avail-grid .hour-td{background:var(--surface2);font-size:11px;color:var(--text2);padding:2px 6px;text-align:right;white-space:nowrap}
+.avail-cell{width:80px;height:28px;cursor:pointer;transition:background .05s;user-select:none}
+.avail-cell.mine{background:var(--accent) !important;opacity:.85}
+.avail-cell.mine:hover{opacity:1}
+.heat-0{background:var(--surface2)}
+.heat-1{background:#c8e6c9}
+.heat-2{background:#81c784}
+.heat-3{background:#4caf50}
+.heat-4{background:#2e7d32}
+.heat-5{background:#1b5e20}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .heat-1{background:#1b3a1b}
+  :root:not([data-theme="light"]) .heat-2{background:#2a5c2a}
+  :root:not([data-theme="light"]) .heat-3{background:#388e3c}
+  :root:not([data-theme="light"]) .heat-4{background:#4caf50}
+  :root:not([data-theme="light"]) .heat-5{background:#81c784}
+}
+:root[data-theme="dark"] .heat-1{background:#1b3a1b}
+:root[data-theme="dark"] .heat-2{background:#2a5c2a}
+:root[data-theme="dark"] .heat-3{background:#388e3c}
+:root[data-theme="dark"] .heat-4{background:#4caf50}
+:root[data-theme="dark"] .heat-5{background:#81c784}
+.avail-cell:hover{filter:brightness(1.1)}
+.avail-cell.drag-on{background:var(--accent) !important;opacity:.85}
+.avail-cell.drag-off{background:var(--surface2) !important}
+
+/* CALENDAR PICKER */
+.cal-picker{background:var(--surface2);border-radius:12px;padding:12px;user-select:none}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-nav-btn{background:transparent;border:1.5px solid var(--border);border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px;color:var(--text2);display:flex;align-items:center;justify-content:center;line-height:1}
+.cal-nav-btn:hover{border-color:var(--accent);color:var(--accent)}
+.cal-month-label{font-size:14px;font-weight:700;color:var(--text)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-dow{font-size:10px;font-weight:700;color:var(--text2);text-align:center;padding:4px 0;text-transform:uppercase}
+.cal-day{height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;transition:background .08s,color .08s;color:var(--text)}
+.cal-day:hover{background:var(--accent);color:#fff;opacity:.7}
+.cal-day.selected{background:var(--accent);color:#fff;opacity:1}
+.cal-day.today{font-weight:700;outline:2px solid var(--accent);outline-offset:-2px}
+.cal-day.other-month{color:var(--text2);opacity:.4}
+.cal-day.past{opacity:.25;cursor:default}
+.cal-day.empty{cursor:default}
+
+/* SLOT TOOLTIP */
+.slot-tooltip{position:fixed;background:var(--text);color:var(--bg);padding:8px 12px;border-radius:10px;font-size:13px;pointer-events:none;z-index:999;max-width:220px;line-height:1.5;opacity:0;transition:opacity .15s}
+.slot-tooltip.show{opacity:1}
+
+/* BEST TIMES */
+.best-times{margin-top:20px;border-top:1px solid var(--border);padding-top:18px}
+.best-times-header{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.best-times-icon{font-size:18px}
+.best-times-title{font-size:15px;font-weight:700;color:var(--text);flex:1}
+.best-times-sub{font-size:12px;color:var(--text2);background:var(--surface2);padding:3px 9px;border-radius:20px}
+.best-time-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:var(--surface2);margin-bottom:8px;border:1.5px solid transparent;transition:border-color .2s,transform .15s}
+.best-time-row.rank-1{background:linear-gradient(135deg,rgba(255,215,0,.12),rgba(255,215,0,.04));border-color:rgba(255,215,0,.35)}
+.best-time-row.rank-2{background:linear-gradient(135deg,rgba(192,192,192,.12),rgba(192,192,192,.04));border-color:rgba(192,192,192,.3)}
+.best-time-row.rank-3{background:linear-gradient(135deg,rgba(205,127,50,.12),rgba(205,127,50,.04));border-color:rgba(205,127,50,.3)}
+.best-time-row:hover{transform:translateX(2px)}
+.best-time-rank{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+.rank-1 .best-time-rank{background:rgba(255,215,0,.25);color:#b8860b}
+.rank-2 .best-time-rank{background:rgba(192,192,192,.25);color:#888}
+.rank-3 .best-time-rank{background:rgba(205,127,50,.25);color:#a0522d}
+.best-time-row:not(.rank-1):not(.rank-2):not(.rank-3) .best-time-rank{background:var(--border);color:var(--text2);font-size:11px}
+.best-time-info{flex:1;min-width:0}
+.best-time-slot{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
+.best-time-count{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;background:rgba(52,199,89,.18);color:var(--success);padding:2px 7px;border-radius:10px;margin-bottom:4px}
+.best-time-names{font-size:12px;color:var(--text2);line-height:1.4}
+.best-time-bar-wrap{width:100%;height:4px;border-radius:2px;background:var(--border);overflow:hidden;margin-top:6px}
+.best-time-bar{height:4px;border-radius:2px;background:var(--success);transition:width .4s ease}
+.rank-1 .best-time-bar{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.best-times-empty{text-align:center;padding:20px;color:var(--text2);font-size:13px}
+
+.detail-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.detail-back{background:transparent;border:1.5px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;color:var(--text2)}
+.detail-back:hover{border-color:var(--accent);color:var(--accent)}
+.detail-title{font-size:18px;font-weight:700;flex:1}
+.btn-del-event{background:transparent;border:1.5px solid var(--danger);color:var(--danger);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px}
+.participants-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.participant-chip{font-size:12px;padding:3px 10px;border-radius:20px;font-weight:600}
+
+.section-sub{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px;margin-top:16px}
+.my-city-row{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.my-city-row label{font-size:13px;color:var(--text2)}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--text2);font-size:14px}
+
+/* LOADING */
+.loading{display:inline-block;width:18px;height:18px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TOAST */
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:1000;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🌐</div>
+    <h1 class="login-title">TimeSync</h1>
+    <p class="login-sub">Global time coordination for your team</p>
+    <div class="field">
+      <label>Your Name</label>
+      <input id="inp-name" type="text" placeholder="e.g. Mina" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Team Name</label>
+      <input id="inp-team" type="text" placeholder="e.g. InternationalFriends" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input id="inp-pass" type="password" placeholder="Set or enter your team password">
+    </div>
+    <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Enter TimeSync</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" style="display:none;flex-direction:column;min-height:100vh">
+  <header class="app-header">
+    <div class="header-top">
+      <span class="app-logo">🌐 TimeSync</span>
+      <span class="team-badge" id="team-badge"></span>
+      <span class="utc-clock" id="utc-clock"></span>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('wc')">🌍 World Clock</button>
+      <button class="tab-btn" onclick="switchTab('ft')">📅 Find a Time</button>
+    </div>
+  </header>
+  <div class="app-body">
+    <!-- WORLD CLOCK PANEL -->
+    <div class="panel active" id="panel-wc">
+      <div class="section-card">
+        <div class="section-title">Add City</div>
+        <div class="city-add-row">
+          <div class="city-search-wrap">
+            <input id="wc-city-search" type="text" placeholder="Search city..." autocomplete="off"
+              oninput="filterCities(this.value,'wc-dropdown')"
+              onfocus="showDropdown('wc-dropdown')"
+              onblur="setTimeout(()=>hideDropdown('wc-dropdown'),200)">
+            <div class="city-dropdown" id="wc-dropdown"></div>
+          </div>
+          <input class="label-input" id="wc-label" type="text" placeholder="Label (optional)" maxlength="20">
+          <button class="btn-add" onclick="wcAddCity()">Add</button>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-title">Team Clocks</div>
+        <div class="city-list" id="wc-city-list"><div class="empty-state">No cities added yet.<br>Add a city above to start.</div></div>
+      </div>
+      <div class="section-card">
+        <div class="section-title">24-Hour Grid</div>
+        <div class="grid-wrap"><table class="time-grid" id="wc-grid"></table></div>
+      </div>
+    </div>
+
+    <!-- FIND A TIME PANEL -->
+    <div class="panel" id="panel-ft">
+      <div id="ft-list-view">
+        <div class="section-card">
+          <div class="section-title">Events</div>
+          <div class="event-list" id="ft-event-list"></div>
+          <button class="btn-new-event" onclick="showCreateEvent()">+ Create New Event</button>
+        </div>
+      </div>
+
+      <div id="ft-create-view" style="display:none">
+        <div class="section-card">
+          <div class="section-title">New Event</div>
+          <div class="form-grid">
+            <div class="form-field" style="grid-column:1/-1">
+              <label>Event Title</label>
+              <input id="ev-title" type="text" placeholder="e.g. Weekly Hangout">
+            </div>
+            <div class="form-field" style="grid-column:1/-1">
+              <label>Select Dates <span style="font-weight:400;color:var(--text2);font-size:11px">(click or drag to select)</span></label>
+              <div class="cal-picker" id="cal-picker">
+                <div class="cal-nav">
+                  <button class="cal-nav-btn" onclick="calPrevMonth()">‹</button>
+                  <span class="cal-month-label" id="cal-month-label"></span>
+                  <button class="cal-nav-btn" onclick="calNextMonth()">›</button>
+                </div>
+                <div class="cal-grid" id="cal-grid"></div>
+              </div>
+              <div class="date-tags" id="ev-date-tags" style="margin-top:8px"></div>
+            </div>
+            <div class="form-field">
+              <label>Start Hour (Local)</label>
+              <select id="ev-start-h"></select>
+            </div>
+            <div class="form-field">
+              <label>End Hour (Local)</label>
+              <select id="ev-end-h"></select>
+            </div>
+            <div class="form-field" style="grid-column:1/-1">
+              <label>Your City (for timezone)</label>
+              <div class="city-search-wrap">
+                <input id="ev-city-search" type="text" placeholder="Search your city..."
+                  oninput="filterCities(this.value,'ev-dropdown')"
+                  onfocus="showDropdown('ev-dropdown')"
+                  onblur="setTimeout(()=>hideDropdown('ev-dropdown'),200)">
+                <div class="city-dropdown" id="ev-dropdown"></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-cancel" onclick="hideCreateEvent()">Cancel</button>
+            <button class="btn-submit" onclick="doCreateEvent()">Create Event</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="ft-detail-view" style="display:none">
+        <div class="section-card">
+          <div class="detail-header">
+            <button class="detail-back" onclick="showEventList()">← Back</button>
+            <span class="detail-title" id="det-title"></span>
+            <button class="btn-del-event" onclick="deleteCurrentEvent()">Delete</button>
+          </div>
+          <div class="participants-list" id="det-participants"></div>
+          <div class="section-sub">Heatmap — Everyone's Availability</div>
+          <div class="avail-wrap"><table class="avail-grid" id="heat-grid"></table></div>
+          <div class="best-times" id="best-times-section" style="display:none">
+            <div class="best-times-header">
+              <span class="best-times-icon">🏆</span>
+              <span class="best-times-title">Best Times</span>
+              <span class="best-times-sub" id="best-times-sub"></span>
+            </div>
+            <div id="best-times-list"></div>
+          </div>
+          <div class="section-sub">My Availability <span id="my-city-label" style="color:var(--text2);font-weight:400;font-size:11px"></span></div>
+          <div class="my-city-row">
+            <label>My city:</label>
+            <div class="city-search-wrap" style="flex:1;max-width:260px">
+              <input id="my-city-search" type="text" placeholder="Search your city..."
+                oninput="filterCities(this.value,'my-dropdown')"
+                onfocus="showDropdown('my-dropdown')"
+                onblur="setTimeout(()=>hideDropdown('my-dropdown'),200)">
+              <div class="city-dropdown" id="my-dropdown"></div>
+            </div>
+          </div>
+          <div class="avail-wrap"><table class="avail-grid" id="my-grid"></table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+// ─── FIREBASE ───────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCyIcCXcw2hK5jjertT6xXvKYYJ5F_mydA",
+  authDomain: "timesync-c9e8d.firebaseapp.com",
+  databaseURL: "https://timesync-c9e8d-default-rtdb.firebaseio.com",
+  projectId: "timesync-c9e8d",
+  storageBucket: "timesync-c9e8d.firebasestorage.app",
+  messagingSenderId: "178304572922",
+  appId: "1:178304572922:web:e5afbcdd70ffaaa3ddd843"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let myName = '', teamId = '', teamName = '';
+let wcCities = {}, ftEvents = {};
+let wcListener = null, ftListener = null;
+let selectedWCCity = null, selectedEVCity = null, selectedMYCity = null;
+let currentEventId = null;
+let isDragging = false, dragValue = false, dragCells = new Set();
+let evDates = [];
+let myAvailSlots = {};  // local draft before save
+
+// ─── CITIES DATABASE ─────────────────────────────────────────────────────────
+const CITIES = [
+  // Korea
+  {n:"Seoul",c:"Korea",tz:"Asia/Seoul"},{n:"Busan",c:"Korea",tz:"Asia/Seoul"},
+  {n:"Incheon",c:"Korea",tz:"Asia/Seoul"},{n:"Daegu",c:"Korea",tz:"Asia/Seoul"},
+  {n:"Daejeon",c:"Korea",tz:"Asia/Seoul"},{n:"Gwangju",c:"Korea",tz:"Asia/Seoul"},
+  {n:"Suwon",c:"Korea",tz:"Asia/Seoul"},
+  // USA
+  {n:"New York",c:"USA",tz:"America/New_York"},{n:"Los Angeles",c:"USA",tz:"America/Los_Angeles"},
+  {n:"Chicago",c:"USA",tz:"America/Chicago"},{n:"Houston",c:"USA",tz:"America/Chicago"},
+  {n:"Phoenix",c:"USA",tz:"America/Phoenix"},{n:"Philadelphia",c:"USA",tz:"America/New_York"},
+  {n:"San Antonio",c:"USA",tz:"America/Chicago"},{n:"San Diego",c:"USA",tz:"America/Los_Angeles"},
+  {n:"Dallas",c:"USA",tz:"America/Chicago"},{n:"San Jose",c:"USA",tz:"America/Los_Angeles"},
+  {n:"Seattle",c:"USA",tz:"America/Los_Angeles"},{n:"Denver",c:"USA",tz:"America/Denver"},
+  {n:"Boston",c:"USA",tz:"America/New_York"},{n:"Miami",c:"USA",tz:"America/New_York"},
+  {n:"Atlanta",c:"USA",tz:"America/New_York"},{n:"Minneapolis",c:"USA",tz:"America/Chicago"},
+  {n:"Madison",c:"USA (WI)",tz:"America/Chicago"},{n:"Milwaukee",c:"USA (WI)",tz:"America/Chicago"},
+  {n:"Green Bay",c:"USA (WI)",tz:"America/Chicago"},{n:"Honolulu",c:"USA (HI)",tz:"Pacific/Honolulu"},
+  {n:"Hilo",c:"USA (HI)",tz:"Pacific/Honolulu"},{n:"Maui",c:"USA (HI)",tz:"Pacific/Honolulu"},
+  {n:"Washington DC",c:"USA",tz:"America/New_York"},{n:"Las Vegas",c:"USA",tz:"America/Los_Angeles"},
+  {n:"Portland",c:"USA",tz:"America/Los_Angeles"},{n:"Detroit",c:"USA",tz:"America/Detroit"},
+  // Canada
+  {n:"Toronto",c:"Canada",tz:"America/Toronto"},{n:"Vancouver",c:"Canada",tz:"America/Vancouver"},
+  {n:"Montreal",c:"Canada",tz:"America/Toronto"},{n:"Calgary",c:"Canada",tz:"America/Edmonton"},
+  {n:"Edmonton",c:"Canada",tz:"America/Edmonton"},{n:"Ottawa",c:"Canada",tz:"America/Toronto"},
+  // UK & Europe
+  {n:"London",c:"UK",tz:"Europe/London"},{n:"Paris",c:"France",tz:"Europe/Paris"},
+  {n:"Berlin",c:"Germany",tz:"Europe/Berlin"},{n:"Amsterdam",c:"Netherlands",tz:"Europe/Amsterdam"},
+  {n:"Brussels",c:"Belgium",tz:"Europe/Brussels"},{n:"Madrid",c:"Spain",tz:"Europe/Madrid"},
+  {n:"Barcelona",c:"Spain",tz:"Europe/Madrid"},{n:"Rome",c:"Italy",tz:"Europe/Rome"},
+  {n:"Milan",c:"Italy",tz:"Europe/Rome"},{n:"Vienna",c:"Austria",tz:"Europe/Vienna"},
+  {n:"Zurich",c:"Switzerland",tz:"Europe/Zurich"},{n:"Stockholm",c:"Sweden",tz:"Europe/Stockholm"},
+  {n:"Oslo",c:"Norway",tz:"Europe/Oslo"},{n:"Copenhagen",c:"Denmark",tz:"Europe/Copenhagen"},
+  {n:"Helsinki",c:"Finland",tz:"Europe/Helsinki"},{n:"Warsaw",c:"Poland",tz:"Europe/Warsaw"},
+  {n:"Prague",c:"Czech Republic",tz:"Europe/Prague"},{n:"Budapest",c:"Hungary",tz:"Europe/Budapest"},
+  {n:"Lisbon",c:"Portugal",tz:"Europe/Lisbon"},{n:"Athens",c:"Greece",tz:"Europe/Athens"},
+  {n:"Kiev",c:"Ukraine",tz:"Europe/Kiev"},{n:"Moscow",c:"Russia",tz:"Europe/Moscow"},
+  {n:"Istanbul",c:"Turkey",tz:"Europe/Istanbul"},
+  // Asia
+  {n:"Tokyo",c:"Japan",tz:"Asia/Tokyo"},{n:"Osaka",c:"Japan",tz:"Asia/Tokyo"},
+  {n:"Sapporo",c:"Japan",tz:"Asia/Tokyo"},{n:"Fukuoka",c:"Japan",tz:"Asia/Tokyo"},
+  {n:"Beijing",c:"China",tz:"Asia/Shanghai"},{n:"Shanghai",c:"China",tz:"Asia/Shanghai"},
+  {n:"Shenzhen",c:"China",tz:"Asia/Shanghai"},{n:"Guangzhou",c:"China",tz:"Asia/Shanghai"},
+  {n:"Chengdu",c:"China",tz:"Asia/Shanghai"},{n:"Hong Kong",c:"Hong Kong",tz:"Asia/Hong_Kong"},
+  {n:"Taipei",c:"Taiwan",tz:"Asia/Taipei"},{n:"Singapore",c:"Singapore",tz:"Asia/Singapore"},
+  {n:"Bangkok",c:"Thailand",tz:"Asia/Bangkok"},{n:"Chiang Mai",c:"Thailand",tz:"Asia/Bangkok"},
+  {n:"Phuket",c:"Thailand",tz:"Asia/Bangkok"},{n:"Mumbai",c:"India",tz:"Asia/Kolkata"},
+  {n:"Delhi",c:"India",tz:"Asia/Kolkata"},{n:"Bangalore",c:"India",tz:"Asia/Kolkata"},
+  {n:"Chennai",c:"India",tz:"Asia/Kolkata"},{n:"Kolkata",c:"India",tz:"Asia/Kolkata"},
+  {n:"Hyderabad",c:"India",tz:"Asia/Kolkata"},{n:"Kuala Lumpur",c:"Malaysia",tz:"Asia/Kuala_Lumpur"},
+  {n:"Jakarta",c:"Indonesia",tz:"Asia/Jakarta"},{n:"Manila",c:"Philippines",tz:"Asia/Manila"},
+  {n:"Ho Chi Minh City",c:"Vietnam",tz:"Asia/Ho_Chi_Minh"},{n:"Hanoi",c:"Vietnam",tz:"Asia/Bangkok"},
+  {n:"Dhaka",c:"Bangladesh",tz:"Asia/Dhaka"},{n:"Karachi",c:"Pakistan",tz:"Asia/Karachi"},
+  {n:"Lahore",c:"Pakistan",tz:"Asia/Karachi"},{n:"Islamabad",c:"Pakistan",tz:"Asia/Karachi"},
+  {n:"Colombo",c:"Sri Lanka",tz:"Asia/Colombo"},{n:"Kathmandu",c:"Nepal",tz:"Asia/Kathmandu"},
+  {n:"Dubai",c:"UAE",tz:"Asia/Dubai"},{n:"Abu Dhabi",c:"UAE",tz:"Asia/Dubai"},
+  {n:"Riyadh",c:"Saudi Arabia",tz:"Asia/Riyadh"},{n:"Doha",c:"Qatar",tz:"Asia/Qatar"},
+  {n:"Kuwait City",c:"Kuwait",tz:"Asia/Kuwait"},{n:"Tehran",c:"Iran",tz:"Asia/Tehran"},
+  {n:"Baku",c:"Azerbaijan",tz:"Asia/Baku"},{n:"Tbilisi",c:"Georgia",tz:"Asia/Tbilisi"},
+  {n:"Tashkent",c:"Uzbekistan",tz:"Asia/Tashkent"},
+  // Oceania
+  {n:"Sydney",c:"Australia",tz:"Australia/Sydney"},{n:"Melbourne",c:"Australia",tz:"Australia/Melbourne"},
+  {n:"Brisbane",c:"Australia",tz:"Australia/Brisbane"},{n:"Perth",c:"Australia",tz:"Australia/Perth"},
+  {n:"Adelaide",c:"Australia",tz:"Australia/Adelaide"},{n:"Auckland",c:"New Zealand",tz:"Pacific/Auckland"},
+  // Americas
+  {n:"Mexico City",c:"Mexico",tz:"America/Mexico_City"},{n:"Guadalajara",c:"Mexico",tz:"America/Mexico_City"},
+  {n:"São Paulo",c:"Brazil",tz:"America/Sao_Paulo"},{n:"Rio de Janeiro",c:"Brazil",tz:"America/Sao_Paulo"},
+  {n:"Brasília",c:"Brazil",tz:"America/Sao_Paulo"},{n:"Buenos Aires",c:"Argentina",tz:"America/Argentina/Buenos_Aires"},
+  {n:"Santiago",c:"Chile",tz:"America/Santiago"},{n:"Bogotá",c:"Colombia",tz:"America/Bogota"},
+  {n:"Lima",c:"Peru",tz:"America/Lima"},{n:"Caracas",c:"Venezuela",tz:"America/Caracas"},
+  {n:"Havana",c:"Cuba",tz:"America/Havana"},{n:"Panama City",c:"Panama",tz:"America/Panama"},
+  {n:"San José",c:"Costa Rica",tz:"America/Costa_Rica"},
+  // Africa
+  {n:"Cairo",c:"Egypt",tz:"Africa/Cairo"},{n:"Lagos",c:"Nigeria",tz:"Africa/Lagos"},
+  {n:"Nairobi",c:"Kenya",tz:"Africa/Nairobi"},{n:"Johannesburg",c:"South Africa",tz:"Africa/Johannesburg"},
+  {n:"Cape Town",c:"South Africa",tz:"Africa/Johannesburg"},{n:"Accra",c:"Ghana",tz:"Africa/Accra"},
+  {n:"Casablanca",c:"Morocco",tz:"Africa/Casablanca"},{n:"Addis Ababa",c:"Ethiopia",tz:"Africa/Addis_Ababa"},
+  {n:"Dar es Salaam",c:"Tanzania",tz:"Africa/Dar_es_Salaam"},
+];
+
+const CITY_COLORS = ['#007aff','#ff9500','#ff2d55','#34c759','#af52de','#ff6b35','#5ac8fa','#ffcc02','#32d74b','#bf5af2'];
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function sanitizeTeamId(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+}
+
+function nowInTZ(tz) {
+  return new Date(new Date().toLocaleString('en-US', {timeZone: tz}));
+}
+
+function formatTime(date) {
+  return date.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:false});
+}
+
+function formatDate(date) {
+  return date.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+}
+
+function localToUTC(dateStr, hourFloat, tz) {
+  const d = new Date(`${dateStr}T${String(Math.floor(hourFloat)).padStart(2,'0')}:00:00`);
+  const localStr = d.toLocaleString('sv-SE', {timeZone: tz});
+  const localDate = new Date(localStr);
+  const offset = d - localDate;
+  const utc = new Date(d.getTime() + offset);
+  return utc.toISOString().slice(0,16).replace('T','_');
+}
+
+function utcToLocal(utcDt, tz) {
+  const [datePart, timePart] = utcDt.split('_');
+  const [h,m] = timePart.split(':');
+  const d = new Date(Date.UTC(
+    parseInt(datePart.slice(0,4)), parseInt(datePart.slice(5,7))-1, parseInt(datePart.slice(8,10)),
+    parseInt(h), parseInt(m)
+  ));
+  const local = new Date(d.toLocaleString('en-US', {timeZone: tz}));
+  return {date: local.toLocaleDateString('sv-SE'), hour: local.getHours()};
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function colorForIndex(i) { return CITY_COLORS[i % CITY_COLORS.length]; }
+
+function colorForName(name) {
+  let h = 0; for (let c of name) h = (h*31 + c.charCodeAt(0)) & 0xffffff;
+  return CITY_COLORS[h % CITY_COLORS.length];
+}
+
+// ─── UTC CLOCK ───────────────────────────────────────────────────────────────
+setInterval(() => {
+  const now = new Date();
+  document.getElementById('utc-clock').textContent = 'UTC ' + now.toUTCString().slice(17,22);
+}, 1000);
+
+// ─── LOGIN ───────────────────────────────────────────────────────────────────
+document.getElementById('inp-pass').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+document.getElementById('inp-team').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('inp-pass').focus(); });
+
+async function doLogin() {
+  const name = document.getElementById('inp-name').value.trim();
+  const team = document.getElementById('inp-team').value.trim();
+  const pass = document.getElementById('inp-pass').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+
+  if (!name || !team || !pass) { errEl.textContent = 'Please fill in all fields.'; return; }
+
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading"></span>Connecting...';
+
+  const tid = sanitizeTeamId(team);
+  if (!tid) { errEl.textContent = 'Invalid team name.'; btn.disabled=false; btn.textContent='Enter TimeSync'; return; }
+
+  try {
+    const snap = await db.ref(`teams/${tid}/meta`).get();
+    if (snap.exists()) {
+      const meta = snap.val();
+      if (meta.password !== pass) {
+        errEl.textContent = 'Incorrect password for this team.';
+        btn.disabled=false; btn.innerHTML='Enter TimeSync'; return;
+      }
+    } else {
+      // Create new team
+      await db.ref(`teams/${tid}/meta`).set({ name: team, password: pass, createdAt: Date.now() });
+    }
+    myName = name; teamId = tid; teamName = team;
+    enterApp();
+  } catch(e) {
+    errEl.textContent = 'Connection error. Check your internet.';
+    console.error(e);
+  }
+  btn.disabled=false; btn.innerHTML='Enter TimeSync';
+}
+
+function enterApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'flex';
+  document.getElementById('team-badge').textContent = teamName;
+  startListeners();
+  buildHourSelects();
+}
+
+function doLogout() {
+  if (wcListener) { db.ref(`teams/${teamId}/worldClock/cities`).off('value', wcListener); wcListener=null; }
+  if (ftListener) { db.ref(`teams/${teamId}/findATime`).off('value', ftListener); ftListener=null; }
+  myName=''; teamId=''; teamName='';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('inp-pass').value='';
+}
+
+// ─── REALTIME LISTENERS ───────────────────────────────────────────────────────
+function startListeners() {
+  wcListener = db.ref(`teams/${teamId}/worldClock/cities`).on('value', snap => {
+    wcCities = snap.val() || {};
+    renderWCCities();
+    renderWCGrid();
+  });
+  ftListener = db.ref(`teams/${teamId}/findATime`).on('value', snap => {
+    ftEvents = snap.val() || {};
+    renderFTEventList();
+    if (currentEventId && ftEvents[currentEventId]) renderEventDetail(currentEventId);
+  });
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (tab==='wc'?i===0:i===1)));
+  document.getElementById('panel-wc').classList.toggle('active', tab==='wc');
+  document.getElementById('panel-ft').classList.toggle('active', tab==='ft');
+}
+
+// ─── CITY SEARCH DROPDOWN ─────────────────────────────────────────────────────
+let dropdownTarget = {};  // id => selected city
+
+function filterCities(q, dropId) {
+  const dd = document.getElementById(dropId);
+  dd.innerHTML = '';
+  if (!q.trim()) { dd.classList.remove('open'); return; }
+  const lq = q.toLowerCase();
+  const matches = CITIES.filter(c => c.n.toLowerCase().includes(lq) || c.c.toLowerCase().includes(lq)).slice(0,12);
+  if (!matches.length) { dd.classList.remove('open'); return; }
+  matches.forEach(city => {
+    const d = document.createElement('div');
+    d.className='city-option';
+    d.innerHTML=`<div>${city.n}</div><div class="co-sub">${city.c} &bull; ${city.tz}</div>`;
+    d.onmousedown = () => selectCity(city, dropId);
+    dd.appendChild(d);
+  });
+  dd.classList.add('open');
+}
+
+function selectCity(city, dropId) {
+  dropdownTarget[dropId] = city;
+  const inputMap = {'wc-dropdown':'wc-city-search','ev-dropdown':'ev-city-search','my-dropdown':'my-city-search'};
+  const inp = document.getElementById(inputMap[dropId]);
+  if (inp) inp.value = `${city.n}, ${city.c}`;
+  const dd = document.getElementById(dropId);
+  dd.classList.remove('open');
+  // Side effects
+  if (dropId==='wc-dropdown') selectedWCCity = city;
+  if (dropId==='ev-dropdown') selectedEVCity = city;
+  if (dropId==='my-dropdown') {
+    selectedMYCity = city;
+    document.getElementById('my-city-label').textContent = `(${city.n}, ${city.tz})`;
+    renderMyGrid();
+  }
+}
+
+function showDropdown(id) {
+  const inp = document.getElementById({'wc-dropdown':'wc-city-search','ev-dropdown':'ev-city-search','my-dropdown':'my-city-search'}[id]);
+  if (inp && inp.value.trim()) filterCities(inp.value, id);
+}
+
+function hideDropdown(id) { document.getElementById(id).classList.remove('open'); }
+
+// ─── WORLD CLOCK ─────────────────────────────────────────────────────────────
+function wcAddCity() {
+  if (!selectedWCCity) { toast('Please select a city from the list.'); return; }
+  const label = document.getElementById('wc-label').value.trim() || '';
+  const cityId = 'c_' + Date.now();
+  db.ref(`teams/${teamId}/worldClock/cities/${cityId}`).set({
+    name: selectedWCCity.n, country: selectedWCCity.c, tz: selectedWCCity.tz,
+    label: label, addedBy: myName, addedAt: Date.now()
+  });
+  document.getElementById('wc-city-search').value='';
+  document.getElementById('wc-label').value='';
+  selectedWCCity=null;
+  dropdownTarget['wc-dropdown']=null;
+}
+
+function wcRemoveCity(cityId) {
+  db.ref(`teams/${teamId}/worldClock/cities/${cityId}`).remove();
+}
+
+let wcTimerInterval = null;
+function renderWCCities() {
+  const list = document.getElementById('wc-city-list');
+  const keys = Object.keys(wcCities);
+  if (!keys.length) { list.innerHTML='<div class="empty-state">No cities added yet.<br>Add a city above to start.</div>'; return; }
+
+  if (wcTimerInterval) clearInterval(wcTimerInterval);
+
+  function render() {
+    list.innerHTML = keys.map((id,i) => {
+      const c = wcCities[id];
+      const local = nowInTZ(c.tz);
+      const color = colorForIndex(i);
+      return `<div class="city-item">
+        <div class="city-color" style="background:${color}"></div>
+        <div class="city-info">
+          <div class="city-name">${c.name} <span style="color:var(--text2);font-weight:400;font-size:12px">${c.country}</span></div>
+          ${c.label ? `<div class="city-label">${c.label} · Added by ${c.addedBy}</div>` : `<div class="city-label">Added by ${c.addedBy}</div>`}
+        </div>
+        <div>
+          <div class="city-time" style="color:${color}">${formatTime(local)}</div>
+          <div class="city-date">${formatDate(local)}</div>
+        </div>
+        <button class="btn-remove" onclick="wcRemoveCity('${id}')" title="Remove">×</button>
+      </div>`;
+    }).join('');
+  }
+  render();
+  wcTimerInterval = setInterval(render, 30000);
+}
+
+function renderWCGrid() {
+  const grid = document.getElementById('wc-grid');
+  const keys = Object.keys(wcCities);
+  if (!keys.length) { grid.innerHTML=''; return; }
+
+  const nowUTC = new Date();
+  const currentHour = nowUTC.getUTCHours();
+
+  let html = '<thead><tr><th class="city-th">City</th>';
+  for (let h=0; h<24; h++) html += `<th>${String(h).padStart(2,'0')}</th>`;
+  html += '</tr></thead><tbody>';
+
+  keys.forEach((id,i) => {
+    const c = wcCities[id];
+    const color = colorForIndex(i);
+    html += `<tr><td class="city-th" style="border-left:3px solid ${color}">${c.name}${c.label?` <span style="color:var(--text2);font-size:10px">(${c.label})</span>`:''}</td>`;
+
+    for (let h=0; h<24; h++) {
+      const utcDate = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate(), h));
+      const local = new Date(utcDate.toLocaleString('en-US', {timeZone: c.tz}));
+      const lh = local.getHours();
+      const isNow = h===currentHour;
+      const bg = lh>=9&&lh<=23 ? `background:${color}22` : 'background:var(--surface2)';
+      html += `<td class="grid-cell${isNow?' now':''}" style="${bg}" title="${String(lh).padStart(2,'0')}:00 in ${c.name}">${String(lh).padStart(2,'0')}</td>`;
+    }
+    html += '</tr>';
+  });
+
+  html += '</tbody>';
+  grid.innerHTML = html;
+}
+
+// Update grid every minute
+setInterval(() => { if (Object.keys(wcCities).length) renderWCGrid(); }, 60000);
+
+// ─── FIND A TIME ──────────────────────────────────────────────────────────────
+function buildHourSelects() {
+  ['ev-start-h','ev-end-h'].forEach((id,idx) => {
+    const sel = document.getElementById(id);
+    for (let h=0; h<25; h++) {
+      const o = document.createElement('option');
+      o.value=h; o.textContent=`${String(h%24).padStart(2,'0')}:00`;
+      if (idx===0&&h===9) o.selected=true;
+      if (idx===1&&h===21) o.selected=true;
+      sel.appendChild(o);
+    }
+  });
+}
+
+function renderFTEventList() {
+  const list = document.getElementById('ft-event-list');
+  const keys = Object.keys(ftEvents);
+  if (!keys.length) { list.innerHTML='<div class="empty-state">No events yet.</div>'; return; }
+
+  list.innerHTML = keys.sort((a,b)=>ftEvents[b].createdAt-ftEvents[a].createdAt).map(id => {
+    const e = ftEvents[id];
+    const pCount = e.participants ? Object.keys(e.participants).length : 0;
+    return `<div class="event-item${currentEventId===id?' active':''}" onclick="renderEventDetail('${id}')">
+      <div class="event-item-title">${e.title}</div>
+      <div class="event-item-meta">${(e.dates||[]).join(', ')} · ${pCount} participant${pCount!==1?'s':''} · by ${e.creatorName}</div>
+    </div>`;
+  }).join('');
+}
+
+function showCreateEvent() {
+  document.getElementById('ft-list-view').style.display='none';
+  document.getElementById('ft-create-view').style.display='block';
+  document.getElementById('ft-detail-view').style.display='none';
+  evDates=[];
+  selectedEVCity=null;
+  document.getElementById('ev-city-search').value='';
+  document.getElementById('ev-title').value='';
+  calInit();
+  renderDateTags();
+}
+
+function hideCreateEvent() {
+  document.getElementById('ft-list-view').style.display='block';
+  document.getElementById('ft-create-view').style.display='none';
+}
+
+// ── Calendar picker ──────────────────────────────────────────
+let calYear, calMonth, calDragging = false, calDragSelect = true;
+
+function calInit() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  renderCal();
+}
+
+function calPrevMonth() {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCal();
+}
+
+function calNextMonth() {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCal();
+}
+
+function renderCal() {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month-label').textContent = `${months[calMonth]} ${calYear}`;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const first = new Date(calYear, calMonth, 1);
+  const last  = new Date(calYear, calMonth+1, 0);
+  const startDow = first.getDay(); // 0=Sun
+
+  let html = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+    .map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  // Empty cells before first day
+  for (let i = 0; i < startDow; i++) html += `<div class="cal-day empty"></div>`;
+
+  for (let d = 1; d <= last.getDate(); d++) {
+    const date = new Date(calYear, calMonth, d);
+    const iso  = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isPast = date < today;
+    const isToday = date.getTime() === today.getTime();
+    const isSel  = evDates.includes(iso);
+    const cls = ['cal-day',
+      isPast ? 'past' : '',
+      isToday ? 'today' : '',
+      isSel ? 'selected' : ''
+    ].filter(Boolean).join(' ');
+
+    if (isPast) {
+      html += `<div class="${cls}">${d}</div>`;
+    } else {
+      html += `<div class="${cls}" data-iso="${iso}"
+        onmousedown="calDayDown(this)"
+        onmouseenter="calDayEnter(this)"
+        ontouchstart="calTouchStart(event,this)"
+        ontouchmove="calTouchMove(event)"
+        ontouchend="calDragging=false">${d}</div>`;
+    }
+  }
+
+  document.getElementById('cal-grid').innerHTML = html;
+}
+
+function calToggle(iso) {
+  if (evDates.includes(iso)) {
+    evDates = evDates.filter(x => x !== iso);
+    calDragSelect = false;
+  } else {
+    evDates.push(iso);
+    evDates.sort();
+    calDragSelect = true;
+  }
+  renderDateTags();
+  renderCal();
+}
+
+function calDayDown(el) {
+  calDragging = true;
+  const iso = el.dataset.iso;
+  calDragSelect = !evDates.includes(iso);
+  calApply(iso);
+  document.addEventListener('mouseup', () => { calDragging = false; }, { once: true });
+}
+
+function calDayEnter(el) {
+  if (!calDragging) return;
+  calApply(el.dataset.iso);
+}
+
+function calApply(iso) {
+  if (calDragSelect && !evDates.includes(iso)) {
+    evDates.push(iso); evDates.sort();
+  } else if (!calDragSelect && evDates.includes(iso)) {
+    evDates = evDates.filter(x => x !== iso);
+  }
+  renderDateTags();
+  renderCal();
+}
+
+function calTouchStart(e, el) {
+  calDragging = true;
+  const iso = el.dataset.iso;
+  calDragSelect = !evDates.includes(iso);
+  calApply(iso);
+}
+
+function calTouchMove(e) {
+  if (!calDragging) return;
+  const touch = e.touches[0];
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  const day = el && el.closest('.cal-day[data-iso]');
+  if (day) { e.preventDefault(); calApply(day.dataset.iso); }
+}
+
+function removeEventDate(d) {
+  evDates = evDates.filter(x => x !== d);
+  renderDateTags();
+  renderCal();
+}
+
+function renderDateTags() {
+  document.getElementById('ev-date-tags').innerHTML = evDates.length
+    ? evDates.map(d => `<span class="date-tag">${d}<span class="rm" onclick="removeEventDate('${d}')">×</span></span>`).join('')
+    : '<span style="font-size:12px;color:var(--text2)">No dates selected yet</span>';
+}
+
+async function doCreateEvent() {
+  const title = document.getElementById('ev-title').value.trim();
+  if (!title) { alert('Please enter an event title.'); return; }
+  if (!evDates.length) { alert('Please add at least one date.'); return; }
+
+  // Auto-match city from typed text if not already selected via dropdown
+  if (!selectedEVCity) {
+    const txt = document.getElementById('ev-city-search').value.trim().toLowerCase();
+    if (txt) {
+      const match = CITIES.find(c =>
+        `${c.n}, ${c.c}`.toLowerCase() === txt ||
+        c.n.toLowerCase() === txt ||
+        `${c.n}, ${c.c}`.toLowerCase().startsWith(txt) ||
+        c.n.toLowerCase().startsWith(txt)
+      );
+      if (match) selectedEVCity = match;
+    }
+  }
+  if (!selectedEVCity) { alert('Please select your city from the dropdown list.'); return; }
+
+  const startH = parseInt(document.getElementById('ev-start-h').value);
+  const endH = parseInt(document.getElementById('ev-end-h').value);
+
+  // Build UTC slots from local hours for each date
+  const utcSlots = {};
+  evDates.forEach(date => {
+    for (let h=startH; h<endH; h++) {
+      const key = localToUTC(date, h, selectedEVCity.tz);
+      utcSlots[key] = true;
+    }
+  });
+
+  const eventId = 'e_' + Date.now();
+  try {
+    await db.ref(`teams/${teamId}/findATime/${eventId}`).set({
+      title, dates: evDates, startHour: startH, endHour: endH,
+      tz: selectedEVCity.tz, utcSlots,
+      creatorName: myName, createdAt: Date.now()
+    });
+    toast('Event created!');
+    hideCreateEvent();
+    currentEventId = eventId;
+  } catch(e) {
+    alert('Firebase 오류: ' + e.message + '\n\nFirebase Console → Realtime Database → Rules 탭에서 아래로 변경하세요:\n{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}');
+  }
+}
+
+function showEventList() {
+  currentEventId = null;
+  document.getElementById('ft-list-view').style.display='block';
+  document.getElementById('ft-detail-view').style.display='none';
+  renderFTEventList();
+}
+
+async function deleteCurrentEvent() {
+  if (!currentEventId) return;
+  if (!confirm('Delete this event?')) return;
+  await db.ref(`teams/${teamId}/findATime/${currentEventId}`).remove();
+  showEventList();
+}
+
+function renderEventDetail(eventId) {
+  currentEventId = eventId;
+  const ev = ftEvents[eventId];
+  if (!ev) return;
+
+  document.getElementById('ft-list-view').style.display='none';
+  document.getElementById('ft-create-view').style.display='none';
+  document.getElementById('ft-detail-view').style.display='block';
+  document.getElementById('det-title').textContent = ev.title;
+  renderFTEventList(); // Update active state
+
+  // Participants
+  const parts = ev.participants || {};
+  const pKeys = Object.keys(parts);
+  document.getElementById('det-participants').innerHTML = pKeys.map(name => {
+    const color = colorForName(name);
+    return `<span class="participant-chip" style="background:${color}22;color:${color}">${name}</span>`;
+  }).join('');
+
+  renderHeatGrid(ev);
+  renderMyGrid();
+}
+
+// Tooltip element
+let slotTooltip = null;
+function getTooltip() {
+  if (!slotTooltip) {
+    slotTooltip = document.createElement('div');
+    slotTooltip.className = 'slot-tooltip';
+    document.body.appendChild(slotTooltip);
+  }
+  return slotTooltip;
+}
+function showSlotTooltip(e, html) {
+  const t = getTooltip();
+  t.innerHTML = html;
+  t.classList.add('show');
+  positionTooltip(e);
+}
+function positionTooltip(e) {
+  const t = getTooltip();
+  const x = e.clientX + 14, y = e.clientY - 10;
+  const tw = t.offsetWidth, th = t.offsetHeight;
+  t.style.left = (x + tw > window.innerWidth ? x - tw - 28 : x) + 'px';
+  t.style.top  = (y + th > window.innerHeight ? y - th : y) + 'px';
+}
+function hideSlotTooltip() { getTooltip().classList.remove('show'); }
+
+function renderHeatGrid(ev) {
+  const grid = document.getElementById('heat-grid');
+  if (!ev.utcSlots) { grid.innerHTML=''; return; }
+
+  const slots = Object.keys(ev.utcSlots).sort();
+  const parts = ev.participants || {};
+  const pCount = Object.keys(parts).length || 1;
+  const tz = ev.tz || 'UTC';
+
+  // Group by local date/hour using creator's tz
+  const byDateHour = {};
+  const dates = new Set(), hours = new Set();
+  slots.forEach(s => {
+    const {date, hour} = utcToLocal(s, tz);
+    const key = date+'_'+hour;
+    byDateHour[key] = s;
+    dates.add(date); hours.add(hour);
+  });
+
+  const sortedDates = [...dates].sort();
+  const sortedHours = [...hours].sort((a,b)=>a-b);
+
+  // Count availability per UTC slot + who is available
+  const slotCount = {};
+  const slotNames = {};
+  Object.entries(parts).forEach(([name, p]) => {
+    if (!p.slots) return;
+    Object.keys(p.slots).forEach(s => {
+      slotCount[s] = (slotCount[s]||0) + 1;
+      slotNames[s] = slotNames[s] || [];
+      slotNames[s].push(name);
+    });
+  });
+
+  let html = '<thead><tr><th class="corner">Time</th>';
+  sortedDates.forEach(d => html += `<th class="date-th">${d.slice(5)}</th>`);
+  html += '</tr></thead><tbody>';
+
+  sortedHours.forEach(h => {
+    html += `<tr><td class="hour-td">${String(h).padStart(2,'0')}:00</td>`;
+    sortedDates.forEach(d => {
+      const key = d+'_'+h;
+      const utcKey = byDateHour[key];
+      const count = utcKey ? (slotCount[utcKey]||0) : 0;
+      const level = utcKey ? Math.min(5, Math.ceil(count/pCount*5)) : 0;
+      const names = utcKey ? (slotNames[utcKey]||[]) : [];
+      const dataNames = names.length ? ` data-names="${names.join(',')}" data-slot="${d.slice(5)} ${String(h).padStart(2,'0')}:00" data-count="${count}"` : '';
+      html += `<td class="avail-cell heat-${level}"${dataNames}></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  grid.innerHTML = html;
+
+  // Attach hover/click events for tooltip
+  grid.querySelectorAll('.avail-cell[data-names]').forEach(cell => {
+    cell.addEventListener('mouseenter', e => {
+      const names = cell.dataset.names.split(',');
+      const count = cell.dataset.count;
+      const slot = cell.dataset.slot;
+      showSlotTooltip(e,
+        `<strong>${slot}</strong><br>${count} available:<br>` + names.map(n=>`· ${n}`).join('<br>')
+      );
+    });
+    cell.addEventListener('mousemove', positionTooltip);
+    cell.addEventListener('mouseleave', hideSlotTooltip);
+    cell.addEventListener('click', e => {
+      const names = cell.dataset.names.split(',');
+      const count = cell.dataset.count;
+      const slot = cell.dataset.slot;
+      alert(`${slot}\n${count} available:\n` + names.map(n=>`· ${n}`).join('\n'));
+    });
+  });
+
+  // Best Times section — only show when 2+ people have marked slots
+  const participantsWithSlots = new Set(Object.values(slotNames).flat());
+  const bestSection = document.getElementById('best-times-section');
+  const bestList = document.getElementById('best-times-list');
+  const bestSub = document.getElementById('best-times-sub');
+
+  if (participantsWithSlots.size < 2) {
+    bestSection.style.display = 'none';
+    return;
+  }
+
+  const allSlots = Object.entries(slotCount)
+    .filter(([,c]) => c >= 2)   // only slots with 2+ people
+    .sort((a,b) => b[1]-a[1])
+    .slice(0, 5);
+
+  if (allSlots.length === 0) { bestSection.style.display='none'; return; }
+  bestSection.style.display = 'block';
+
+  const maxCount = allSlots[0][1];
+  bestSub.textContent = `Top ${allSlots.length} slot${allSlots.length>1?'s':''}`;
+
+  const rankClass = ['rank-1','rank-2','rank-3'];
+  const rankLabel = ['1','2','3','4','5'];
+  bestList.innerHTML = allSlots.map(([utcKey, count], i) => {
+    const {date, hour} = utcToLocal(utcKey, tz);
+    const d = new Date(date+'T00:00:00');
+    const dayName = d.toLocaleDateString('en-US',{weekday:'short'});
+    const monthDay = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const timeStr = `${String(hour).padStart(2,'0')}:00`;
+    const names = (slotNames[utcKey]||[]);
+    const nameStr = names.join(' · ');
+    const barWidth = Math.round(count/maxCount*100);
+    const rc = rankClass[i] || '';
+    return `<div class="best-time-row ${rc}">
+      <div class="best-time-rank">${rankLabel[i]||i+1}</div>
+      <div class="best-time-info">
+        <div class="best-time-slot">${dayName}, ${monthDay} &nbsp;·&nbsp; ${timeStr}</div>
+        <span class="best-time-count">✓ ${count} / ${pCount} available</span>
+        <div class="best-time-names">${nameStr}</div>
+        <div class="best-time-bar-wrap"><div class="best-time-bar" style="width:${barWidth}%"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMyGrid() {
+  const ev = ftEvents[currentEventId];
+  if (!ev || !ev.utcSlots) return;
+
+  const tz = selectedMYCity ? selectedMYCity.tz : ev.tz || 'UTC';
+  const slots = Object.keys(ev.utcSlots).sort();
+  const myPart = (ev.participants && ev.participants[myName]) || {slots:{}};
+  const mySaved = myPart.slots || {};
+
+  const byDateHour = {};
+  const dates = new Set(), hours = new Set();
+  slots.forEach(s => {
+    const {date, hour} = utcToLocal(s, tz);
+    byDateHour[date+'_'+hour] = s;
+    dates.add(date); hours.add(hour);
+  });
+
+  const sortedDates = [...dates].sort();
+  const sortedHours = [...hours].sort((a,b)=>a-b);
+
+  let html = '<thead><tr><th class="corner">My Time</th>';
+  sortedDates.forEach(d => html += `<th class="date-th">${d.slice(5)}</th>`);
+  html += '</tr></thead><tbody>';
+
+  sortedHours.forEach(h => {
+    html += `<tr><td class="hour-td">${String(h).padStart(2,'0')}:00</td>`;
+    sortedDates.forEach(d => {
+      const key = d+'_'+h;
+      const utcKey = byDateHour[key];
+      const selected = utcKey && mySaved[utcKey];
+      html += `<td class="avail-cell${selected?' mine':''}" data-utc="${utcKey||''}"
+        onmousedown="startDrag(event,this)" onmouseenter="doDrag(this)" onmouseup="endDrag()"></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+
+  const grid = document.getElementById('my-grid');
+  grid.innerHTML = html;
+  grid.addEventListener('mouseleave', endDrag);
+}
+
+// Drag selection
+function startDrag(e, cell) {
+  e.preventDefault();
+  const ev = ftEvents[currentEventId];
+  const myPart = (ev && ev.participants && ev.participants[myName]) || {slots:{}};
+  const utcKey = cell.dataset.utc;
+  isDragging = true;
+  dragValue = !(myPart.slots && myPart.slots[utcKey]);
+  dragCells = new Set();
+  toggleCell(cell, utcKey);
+}
+
+function doDrag(cell) {
+  if (!isDragging) return;
+  const utcKey = cell.dataset.utc;
+  if (utcKey && !dragCells.has(utcKey)) toggleCell(cell, utcKey);
+}
+
+function toggleCell(cell, utcKey) {
+  if (!utcKey) return;
+  dragCells.add(utcKey);
+  cell.classList.toggle('mine', dragValue);
+  // Update Firebase immediately
+  const path = `teams/${teamId}/findATime/${currentEventId}/participants/${myName}/slots/${utcKey.replace(/[.#$\[\]]/g,'_')}`;
+  if (dragValue) {
+    db.ref(path).set(true);
+    db.ref(`teams/${teamId}/findATime/${currentEventId}/participants/${myName}/name`).set(myName);
+    db.ref(`teams/${teamId}/findATime/${currentEventId}/participants/${myName}/city`).set(
+      selectedMYCity ? {name:selectedMYCity.n, tz:selectedMYCity.tz} : {name:'Unknown',tz:'UTC'}
+    );
+  } else {
+    db.ref(path).remove();
+  }
+}
+
+function endDrag() { isDragging = false; dragCells = new Set(); }
+document.addEventListener('mouseup', endDrag);
+
+// Touch support for avail grid
+document.addEventListener('touchstart', e => {
+  const cell = e.target.closest('.avail-cell');
+  if (cell) { startDrag(e.touches[0], cell); }
+}, {passive:false});
+document.addEventListener('touchmove', e => {
+  const touch = e.touches[0];
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  const cell = el && el.closest('.avail-cell');
+  if (cell) doDrag(cell);
+}, {passive:true});
+document.addEventListener('touchend', endDrag);
+</script>
+</body>
+</html>
